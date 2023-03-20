@@ -21,7 +21,7 @@ Improvements can (and will) be made. Suggestions are welcome!
 Collects the prices for tomorrow and saves them for future use by the other scripts
 - show_prices.sh
 Script to check what the actual prices are that would be send to Domoticz
-- update_domoticz_prices.sh
+- update_domoticz_costs.sh
 Performs the actual update of the dummy-device in Domoticz every hour with the actual price.
 - electricity_costs.dzvents
 Calculates the electricity costs per hour based on variable pricing
@@ -29,23 +29,27 @@ Calculates the electricity costs per hour based on variable pricing
 ## Installation part 1 (price gathering)
 - Go to https://enever.nl and create a token (it's free).
 - Edit the script ```collect_prices.sh``` and add your token on line 3.
-- Create a dummy sensor in Domoticz of type "Custom Sensor" and take a note of the index number. Give it a proper name indicating it's holding the actual price of electricity.
+- Create a dummy sensor in Domoticz of type "Custom Sensor" and take a note of the index number. Give it a proper name indicating it's holding the last hour price of electricity.
+- Create a dummy sensor in Domoticz of type "Custom Sensor" and take a note of the index number. Give it a proper name indicating it's holding the current price of electricity.
 - Create a folder on your domoticz environment and put all files in there. 
  I use ```/home/pi/domoticz/scripts/energy_prices/ ```
 - Make the scripts executable (```chmod 755 *.sh```)
 - Execute the command below in the same folder to collect today's pricing (replace the XXXXXX string with your token):
-    ``` wget -O $(date +'%Y%m%d').json2 https://enever.nl/feed/stroomprijs_vandaag.php?token=XXXXXXXXX```
+    ``` wget -O $(date +'%Y%m%d').json https://enever.nl/api/stroomprijs_vandaag.php?token=XXXXXXXXX```
 - Execute the show_prices script to validate the output:
 ``` ./show_prices.sh ```
-- If all looks fine open the script update_domoticz_prices.sh and make the following modifcations:
+- If all looks fine open the script update_domoticz_costs.sh and make the following modifcations:
 ```
-- on line 8:     change the URL to your own Domoticz IP
-- on line 14-25: change the idx number of the used energy provider to the idx of the sensor created in Domoticz
-- on line 50-61: remove the # in front of the line which mentions our energy provider
+- on line 15:     change the URL to your own Domoticz IP
+- on line 16:	Enter the Domoticz IDX of the P1 Smart meter
+- on line 17:	Remove # and Enter your Telegram API
+- on line 18:	Remove # and Enter your Telegram Chat ID
+- on line 158/164:Remove # of the Telgram messages you want to sent
+
 ```
 - Save the file and close it.
 - The moment of truth: Run the update_domoticz_prices.sh script and check the results:
-``` ./update_domotiz_prices.sh ```
+``` ./update_domotiz_costs.sh ```
 - If the feedback contains ``` "status": "OK" ``` everything works as designed.
 
 ## Automation
