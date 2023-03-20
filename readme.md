@@ -47,8 +47,9 @@ Calculates the electricity costs per hour based on variable pricing
 - on line 158/164:Remove # of the Telegram messages you want to sent
 ```
 - Save the file and close it.
-- - Open the script enever.conf and make the modifcations in mentioned in the file.
-```
+
+- Open the script enever.conf and make the modifcations in mentioned in the file.
+
 - Save the file and close it.
 
 - The moment of truth: Run the update_domoticz_prices.sh script and check the results:
