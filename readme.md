@@ -44,10 +44,13 @@ Calculates the electricity costs per hour based on variable pricing
 - on line 16:	Enter the Domoticz IDX of the P1 Smart meter
 - on line 17:	Remove # and Enter your Telegram API
 - on line 18:	Remove # and Enter your Telegram Chat ID
-- on line 158/164:Remove # of the Telgram messages you want to sent
-
+- on line 158/164:Remove # of the Telegram messages you want to sent
 ```
 - Save the file and close it.
+- - Open the script enever.conf and make the modifcations in mentioned in the file.
+```
+- Save the file and close it.
+
 - The moment of truth: Run the update_domoticz_prices.sh script and check the results:
 ``` ./update_domotiz_costs.sh ```
 - If the feedback contains ``` "status": "OK" ``` everything works as designed.
@@ -58,7 +61,7 @@ Of course nobody want to run these scripts manually, that's why we have crontab 
    # Collect variable electricity prices for tomorrow
       30    19    *    *    *     /home/pi/domoticz/scripts/energy_prices/collect_prices.sh >/dev/null 2>&1
    # Update variable electricity prices in Domoticz
-       0     *     *    *     *   /home/pi/domoticz/scripts/energy_prices/update_domoticz_prices.sh  >/dev/null 2>&1
+       0     *     *    *     *   /home/pi/domoticz/scripts/energy_prices/update_domoticz_costs.sh  >/dev/null 2>&1
 ```
 The update script is scheduled on minut 0 of every hour to ensure the dashboard always shows the actual price.
 
