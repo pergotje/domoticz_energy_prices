@@ -2,7 +2,7 @@
 ##########################################
 #
 # Script to collect the electricity usage of the previous hour
-# and multiply this with the electricity tarig for that hour.
+# and multiply this with the electricity tarif for that hour.
 #
 # Result is written to Domoticz
 #
@@ -12,30 +12,32 @@
 # Modify variables below to your situation
 #####################################
 SetUp () {
-  myDomoticzURL="http://192.168.xxx.xxx:8080"
-  myDomoticzPowerIdx=XXX
+  MyDomoticzURL="http://192.168.2.***:8080"
+  MyDomoticzPowerIdx=**
+  MyTelegramAPI="*****************"
+  MyTelegramChatID="-***********"
 }
 
 
 # Process parameters
 #####################################
 CheckParameters () {
-  myDebug=$1
+  MyDebug="Y"
 }
 
 
 # Set enviroment
 #####################################
 setEnvironment () {
-  mydir=`dirname $0`
-  myTempFile=$mydir/usage.json
+  Mydir=`dirname $0`
+  MyTempFile=$Mydir/usage.json
 }
 
 
 # Debug info
 #####################################
 Echo () {
- if [[ "$myDebug" == "Y" ]]; then
+ if [[ "$MyDebug" == "Y" ]]; then
     echo $1 $2 $3 $4 $5
  fi
 }
@@ -48,74 +50,121 @@ CheckParameters $@
 SetUp
 setEnvironment
 
-myHourStart=$(date -d "now - 60 minutes"  +'%Y-%m-%d %H:00')
-myTSStart=$(date -d "$myHourStart")
-myHourEnd=$(date -d "now"  +'%Y-%m-%d %H:00')
-myDate=$mydir/$(date +'%Y%m%d')
-myHour=$(date -d"- 60 minutes" +'%H')
+MyLastHourStart=$(date -d "now - 60 minutes"  +'%Y-%m-%d %H:00')
+MyTSStart=$(date -d "$MyLastHourStart")
+MyLastHourEnd=$(date -d "now"  +'%Y-%m-%d %H:00')
+MyDate=$Mydir/$(date +'%Y%m%d')
+MyLastHour=$(date -d"- 60 minutes" +'%H')
+MyCurrentHour=$(date -d"- 0 minutes" +'%H')
+
 
 Echo "-----"
-Echo "myHourStart: "$myHourStart
-Echo "myTSStart:   "$myTSStart
-Echo "HourEnd:     "$myHourEnd
-Echo "myDate:      "$myDate
-Echo "myHour:      "$myHour
+Echo "Update prices"
+Echo "-----"
 
-# Extract prices from today's pricelist in <date>.json
-myPrices=$(cat $myDate.json |jq -r --arg myHour "$myHour" '.data[$myHour |tonumber]|[.datum, .prijs, .prijsZP, .prijsEE, .prijsTI, .prijsFR, .prijsAIP, .prijsEZ, .prijsZG, .prijsNE, .prijsGSL, .prijsANWB, .prijsVON, .prijsMDE]|@csv'| tr -d '"')
+
+# Extract last hour price from today's pricelist in <date>.json
+MyPrices=$(cat $MyDate.json |jq -r --arg MyLastHour "$MyLastHour" '.data[$MyLastHour |tonumber]|[.datum, .prijs, .prijsZP, .prijsEE, .prijsTI, .prijsFR, .prijsAIP, .prijsEZ, .prijsZG, .prijsNE, .prijsGSL, .prijsANWB, .prijsVON, .prijsMDE]|@csv'| tr -d '"')
+
+# Extract current price from today's pricelist in <date>.json
+MyCurrentPrices=$(cat $MyDate.json |jq -r --arg MyCurrentHour "$MyCurrentHour" '.data[$MyCurrentHour |tonumber]|[.datum, .prijs, .prijsZP, .prijsEE, .prijsTI, .prijsFR, .prijsAIP, .prijsEZ, .prijsZG, .prijsNE, .prijsGSL, .prijsANWB, .prijsVON, .prijsMDE]|@csv'| tr -d '"')
+
+Echo "-----"
+Echo "Calculating Last Hour"
+Echo "-----"
+Echo "MyLastHourStart: 	"$MyLastHourStart
+Echo "MyTSStart:  	"$MyTSStart
+Echo "MyLastHourEnd:   	"$MyLastHourEnd
+Echo "MyDate:      	"$MyDate
+Echo "MyLastHour:      	"$MyLastHour
+Echo "MyCurrentHour:  	"$MyCurrentHour
+
 
 #Calculate electricity usage last hour
-curl -s -o $myTempFile "$myDomoticzURL/json.htm?type=graph&sensor=counter&idx=$myDomoticzPowerIdx&range=day"
+curl -s -o $MyTempFile "$MyDomoticzURL/json.htm?type=graph&sensor=counter&idx=$MyDomoticzPowerIdx&range=day"
 
 Echo "-----"
-Echo "HourStart:      "$myHourStart
-Echo "HourEnd:        "$myHourEnd
-
-
-myStartValue=$(cat $myTempFile |jq -r --arg myHourStart "$myHourStart" '.result[]|select(.d | startswith($myHourStart))'|jq -r '[.eu]|@csv'|tr ' ' _ |tr -d '"')
-myEndValue=$(cat $myTempFile |jq -r --arg myHourEnd "$myHourEnd" '.result[]|select(.d | startswith($myHourEnd))'|jq -r '[.eu]|@csv'|tr ' ' _ |tr -d '"')
-
-myStartValueReturn=$(cat $myTempFile |jq -r --arg myHourStart "$myHourStart" '.result[]|select(.d | startswith($myHourStart))'|jq -r '[.eg]|@csv'|tr ' ' _ |tr -d '"')
-myEndValueReturn=$(cat $myTempFile |jq -r --arg myHourEnd "$myHourEnd" '.result[]|select(.d | startswith($myHourEnd))'|jq -r '[.eg]|@csv'|tr ' ' _ |tr -d '"')
-
 Echo "-----"
-Echo "myStartValue: "$myStartValue
-Echo "MyEndValue:   "$myEndValue
-Echo "MyReturnStart:"$myStartValueReturn
-Echo "MyReturnEnd:  "$myEndValueReturn
-
-
-myUsageWH="$(($myEndValue-$myStartValue))"
-myUsageKWH=$(echo "scale=4; $myUsageWH/1000" | bc)
+Echo "Calculating Poweruse Last Hour"
 Echo "-----"
-Echo "myUsageWH:    "$myUsageWH
-Echo "UsageKWH:     "$myUsageKWH
 
-for provider in $(cat $mydir/enever.conf |grep -v "^#")
+
+MyStartValue=$(cat $MyTempFile |jq -r --arg MyLastHourStart "$MyLastHourStart" '.result[]|select(.d | startswith($MyLastHourStart))'|jq -r '[.eu]|@csv'|tr ' ' _ |tr -d '"')
+MyEndValue=$(cat $MyTempFile |jq -r --arg MyLastHourEnd "$MyLastHourEnd" '.result[]|select(.d | startswith($MyLastHourEnd))'|jq -r '[.eu]|@csv'|tr ' ' _ |tr -d '"')
+
+MyStartValueReturn=$(cat $MyTempFile |jq -r --arg MyLastHourStart "$MyLastHourStart" '.result[]|select(.d | startswith($MyLastHourStart))'|jq -r '[.eg]|@csv'|tr ' ' _ |tr -d '"')
+MyEndValueReturn=$(cat $MyTempFile |jq -r --arg MyLastHourEnd "$MyLastHourEnd" '.result[]|select(.d | startswith($MyLastHourEnd))'|jq -r '[.eg]|@csv'|tr ' ' _ |tr -d '"')
+
+Echo "MyStartValue: "$MyStartValue
+Echo "MyEndValue:   "$MyEndValue
+Echo "MyReturnStart:"$MyStartValueReturn
+Echo "MyReturnEnd:  "$MyEndValueReturn
+
+
+MyUsageWH="$(($MyEndValue-$MyStartValue))"
+MyUsageKWH=$(echo "scale=4; $MyUsageWH/1000" | bc)
+Echo "-----"
+Echo "MyUsageWH:    "$MyUsageWH
+Echo "UsageKWH:     "$MyUsageKWH
+
+for provider in $(cat $Mydir/enever.conf |grep -v "^#")
 do
- myProviderID=$(echo $provider|cut -d, -f1)
- myProvider=$(echo $provider|cut -d, -f3)
- myProviderCostsDayIDX=$(echo $provider|cut -d, -f5)
- myProviderCostsMonthIDX=$(echo $provider|cut -d, -f6)
- myProviderCostsYearIDX=$(echo $provider|cut -d, -f7)
- myPrice=$(echo $myPrices|cut -d, -f$myProviderID)
- myCosts=$(echo "scale=4; $myUsageKWH*$myPrice" | bc)
+ MyProviderID=$(echo $provider|cut -d, -f1)
+ MyProvider=$(echo $provider|cut -d, -f3)
+ MyProviderLastHourPriceIDX=$(echo $provider|cut -d, -f4)
+ MyProviderCostsDayIDX=$(echo $provider|cut -d, -f5)
+ MyProviderCurrentPriceIDX=$(echo $provider|cut -d, -f6)
+# MyProviderCostsMonthIDX=$(echo $provider|cut -d, -f7)
+# MyProviderCostsYearIDX=$(echo $provider|cut -d, -f8)
+ MyPrice=$(echo $MyPrices|cut -d, -f$MyProviderID)
+ MyCurrentPrice=$(echo $MyCurrentPrices|cut -d, -f$MyProviderID)
+ MyCosts=$(echo "scale=4; $MyUsageKWH*$MyPrice" | bc)
 
+Echo "-----"
  Echo "-----"
- Echo "Price:        "$myPrice
- Echo "UsageKWH:     "$myUsageKWH
- Echo "Costs:        "$myCosts
+ Echo "Provider:     	"$MyProvider
+ Echo "UsageKWH:     	"$MyUsageKWH
+ Echo "Last Hour Price: "$MyPrice
+ Echo "Costs:        	"$MyCosts
+ Echo "Current Price:	"$MyCurrentPrice
+
 
  # Retreive cost counters
- myDayCost=$(curl -s "$myDomoticzURL/json.htm?type=graph&sensor=Percentage&idx=$myProviderCostsDayIDX&range=day"|jq -r '.result[-1]|.v')
- Echo "myDayCost: "$myDayCost
+ MyDayCost=$(curl -s "$MyDomoticzURL/json.htm?type=graph&sensor=Percentage&idx=$MyProviderCostsDayIDX&range=day"|jq -r '.result[-1]|.v')
+ Echo "MyDayCost: "$MyDayCost
+
+
 
  # Calculate new value
- myNewCosts=$(printf "%.2f" $(echo "scale=2; $myDayCost+$myCosts" | bc))
- Echo "myNewCosts: "$myNewCosts
+ MyNewCosts=$(printf "%.2f" $(echo "scale=2; $MyDayCost+$MyCosts" | bc))
+ Echo "MyNewCosts: "$MyNewCosts
+
+
+ Echo "-----"
+ Echo "Updating Cost Counters"
+ Echo "-----"
+
 
  # Update cost counters
- curl -s "$myDomoticzURL/json.htm?type=command&param=udevice&idx=$myProviderCostsDayIDX&nvalue=0&svalue=$myNewCosts"
+ curl -s "$MyDomoticzURL/json.htm?type=command&param=udevice&idx=$MyProviderCostsDayIDX&nvalue=0&svalue=$MyNewCosts"
+ curl -s "$MyDomoticzURL/json.htm?type=command&param=udevice&idx=$MyProviderLastHourPriceIDX&nvalue=0&svalue=$MyPrice"
+ curl -s "$MyDomoticzURL/json.htm?type=command&param=udevice&idx=$MyProviderCurrentPriceIDX&nvalue=0&svalue=$MyCurrentPrice"
+
+ Echo "-----"
+ Echo "Sending Telegram"
+ Echo "-----"
+
+ # Send price to telegram
+#  curl -s "https://api.telegram.org/bot$MyTelegramAPI/sendMessage?chat_id=$MyTelegramChatID&text=**********************************"
+#  curl -s "https://api.telegram.org/bot$MyTelegramAPI/sendMessage?chat_id=$MyTelegramChatID&text=Verbruik+afgelopen+uur+$MyUsageWH+Watt"
+#  curl -s "https://api.telegram.org/bot$MyTelegramAPI/sendMessage?chat_id=$MyTelegramChatID&text=Stroomprijs+afgelopen+uur+$MyPrice+euro"
+#  curl -s "https://api.telegram.org/bot$MyTelegramAPI/sendMessage?chat_id=$MyTelegramChatID&text=Kosten+afgelopen+uur+$MyCosts+euro"
+#  curl -s "https://api.telegram.org/bot$MyTelegramAPI/sendMessage?chat_id=$MyTelegramChatID&text=Verbruik+tot+nu+toe+$MyNewCosts+euro"
+#  curl -s "https://api.telegram.org/bot$MyTelegramAPI/sendMessage?chat_id=$MyTelegramChatID&text=Huidige+Stroomprijs+$MyCurrentPrice+euro"
+#  curl -s "https://api.telegram.org/bot$MyTelegramAPI/sendMessage?chat_id=$MyTelegramChatID&text=**********************************"
+
+ Echo "-"
+ Echo "Done"
 
 
 done
