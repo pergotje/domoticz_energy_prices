@@ -1,6 +1,6 @@
 #!/bin/bash
 
-myToken=xxxxxxxxx
+myToken=*********
 mydir=`dirname $0`
 myFileName=$mydir/$(date --date="tomorrow" +'%Y%m%d').json
 
