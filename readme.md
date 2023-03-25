@@ -58,12 +58,14 @@ Calculates the electricity costs per hour based on variable pricing
 # See line 149/151 for the Domoticz counters
 # See line 158/164 for Telegram messages
 - Save the file and close it.
+```
 
 open the script enever.conf and make the following modifcations:
+```
 - on line 15-28: remove the # in front of the line which mentions our energy provider
 : change the idx number of the used energy provider to the idx of the sensor created in Domoticz
-```
 - Save the file and close it.
+```
 
 - The moment of truth: Run the update_domoticz_costs.sh script and check the results:
 ``` ./update_domotiz_costs.sh ```
