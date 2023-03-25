@@ -52,7 +52,7 @@ Calculates the electricity costs per hour based on variable pricing
 ```
 - on line 15:	change the URL to your own Domoticz IP
 - on line 16:	Enter the Domoticz IDX of your p1 meter
-# If Ypu want to use Telegram for updates, Enter your:
+# If You want to use Telegram for updates, Enter your:
 - on line 16:	Bot Api (Botfather)
 - on line 16:	Chat ID
 # See line 149/151 for the Domoticz counters
